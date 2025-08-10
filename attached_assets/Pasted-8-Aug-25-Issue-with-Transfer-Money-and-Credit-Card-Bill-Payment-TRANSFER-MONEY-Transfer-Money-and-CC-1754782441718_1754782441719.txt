@@ -1,0 +1,22 @@
+8-Aug-25	Issue with Transfer Money and Credit Card Bill Payment	TRANSFER MONEY	Transfer Money and CCBP services	FULL	UNPLANNED	YES	11:00 PM	11:59 PM	0:59:00	EXTERNAL	SSL Limit Issue	Resolved by SSL	N/A	EXTERNAL	Prattay
+6-Aug-25	Delayed response in Web Portals 	WEB	Delayed response in CC, SYS & DMS portals	PARTIAL	UNPLANNED	NO	2:23 PM	2:26 PM	0:03:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	APP	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	ADD MONEY	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	BILL PAYMENT	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	MOBILE RECHARGE	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	RESUBMIT KYC	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	REGISTRATION	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	TRANSFER MONEY	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+4-Aug-25	Delayed response in Web Portals 	WEB	Delayed response in CC, SYS & DMS portals	PARTIAL	UNPLANNED	NO	12:34 PM	1:53 PM	1:19:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Borno
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	APP	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	ADD MONEY	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	BILL PAYMENT	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	E-COM PAYMENT	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	MOBILE RECHARGE	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	SMS	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	TRANSFER MONEY	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	REMITTANCE	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	WEB	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	USSD	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	REGISTRATION	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	RESUBMIT KYC	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir

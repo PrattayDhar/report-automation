@@ -1,0 +1,103 @@
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+const PORT = 5001;
+
+// --- Middleware ---
+app.use(cors()); // Allows the front-end to communicate with this server
+app.use(express.json()); // Allows server to accept JSON data in requests
+
+// --- The Main Report Generation Logic ---
+const generateReport = (rawText) => {
+    // Split the input text into lines, ignoring the header and empty lines
+    const lines = rawText.trim().split('\n').slice(1).filter(line => line.trim() !== '');
+
+    const records = lines.map(line => {
+        // A simple CSV parser assuming commas are the delimiter
+        const columns = line.split(',');
+        return {
+            date: columns[0].trim(),
+            title: columns[1].trim(),
+            channel: columns[2].trim(),
+            impactedService: columns[3].trim(),
+            impactType: columns[4].trim(),
+            modality: columns[5].trim(),
+            duration: columns[9].trim(), // "hh:mm:ss" format
+        };
+    });
+
+    // Helper to convert "hh:mm:ss" to total seconds
+    const durationToSeconds = (durationStr) => {
+        const [hours, minutes, seconds] = durationStr.split(':').map(Number);
+        return (hours * 3600) + (minutes * 60) + seconds;
+    };
+
+    // Helper to convert seconds back to "hh:mm:ss"
+    const secondsToDuration = (totalSeconds) => {
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return [hours, minutes, seconds].map(v => v.toString().padStart(2, '0')).join(':');
+    };
+
+    // --- Filter and Summarize ---
+    const unplannedPartial = records.filter(r => r.impactType === 'PARTIAL' && r.modality === 'UNPLANNED');
+    const unplannedFull = records.filter(r => r.impactType === 'FULL' && r.modality === 'UNPLANNED');
+    const plannedFull = records.filter(r => r.impactType === 'FULL' && r.modality === 'PLANNED');
+
+    const totalDowntimeSeconds = records.reduce((acc, r) => acc + durationToSeconds(r.duration), 0);
+    const unplannedPartialSeconds = unplannedPartial.reduce((acc, r) => acc + durationToSeconds(r.duration), 0);
+    const unplannedFullSeconds = unplannedFull.reduce((acc, r) => acc + durationToSeconds(r.duration), 0);
+    const plannedFullSeconds = plannedFull.reduce((acc, r) => acc + durationToSeconds(r.duration), 0);
+
+    // --- Final Reports ---
+    const reports = {
+        unplannedPartial,
+        unplannedFull,
+        plannedFull,
+        summary: [
+            { type: 'Unplanned Partial', duration: secondsToDuration(unplannedPartialSeconds) },
+            { type: 'Unplanned Full', duration: secondsToDuration(unplannedFullSeconds) },
+            { type: 'Planned Full', duration: secondsToDuration(plannedFullSeconds) },
+        ],
+        reliability: {
+            totalDowntimeMinutes: (totalDowntimeSeconds / 60).toFixed(2),
+        },
+        chartData: {
+            // Data for the Pie Chart
+            byModality: {
+                labels: ['Unplanned', 'Planned'],
+                values: [unplannedPartialSeconds + unplannedFullSeconds, plannedFullSeconds],
+            },
+            // Data for the Bar Chart
+            byType: {
+                labels: ['Unplanned Partial', 'Unplanned Full', 'Planned Full'],
+                values: [unplannedPartialSeconds, unplannedFullSeconds, plannedFullSeconds],
+            },
+        },
+    };
+
+    return reports;
+};
+
+
+// --- API Endpoint ---
+app.post('/api/report', (req, res) => {
+    try {
+        const { downtimeData } = req.body;
+        if (!downtimeData) {
+            return res.status(400).json({ error: 'Downtime data is required.' });
+        }
+        const report = generateReport(downtimeData);
+        res.json(report);
+    } catch (error) {
+        console.error('Error generating report:', error);
+        res.status(500).json({ error: 'Failed to generate report.' });
+    }
+});
+
+// --- Start the Server ---
+app.listen(PORT, () => {
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
+});

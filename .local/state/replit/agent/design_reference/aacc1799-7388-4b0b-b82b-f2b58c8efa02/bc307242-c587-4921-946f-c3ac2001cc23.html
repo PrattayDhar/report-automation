@@ -1,0 +1,551 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Downtime Analysis Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .App {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            color: #1a1a1a;
+            margin: 0;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        .input-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .input-section h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 1em;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+
+        .report-section {
+            margin-top: 30px;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+            font-size: 1.1em;
+        }
+
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .summary-card .unit {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-wrapper {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-wrapper h3 {
+            margin: 0 0 20px 0;
+            color: #333;
+            text-align: center;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        h2 {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-top: 40px;
+            color: #333;
+        }
+
+        .section-subtitle {
+            color: #666;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f8f8;
+            font-weight: bold;
+            color: #333;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .impact-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .impact-full {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .impact-partial {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .modality-planned {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .modality-unplanned {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="App">
+        <header>
+            <h1>Downtime Analysis Dashboard</h1>
+            <p class="subtitle">Comprehensive system downtime tracking and analysis</p>
+        </header>
+
+        <div class="input-section">
+            <h3>Data Input</h3>
+            <textarea 
+                id="dataInput" 
+                placeholder="Paste your tab-separated downtime data here...&#10;Format: Date	Issue	Channel	Service	Impact Type	Modality	Start Time	End Time	Duration"
+                data-mock="true">8-Aug-25	Issue with Transfer Money and Credit Card Bill Payment	TRANSFER MONEY	Transfer Money and CCBP services	FULL	UNPLANNED	YES	11:00 PM	11:59 PM	0:59:00	EXTERNAL	SSL Limit Issue	Resolved by SSL	N/A	EXTERNAL	Prattay
+6-Aug-25	Delayed response in Web Portals 	WEB	Delayed response in CC, SYS & DMS portals	PARTIAL	UNPLANNED	NO	2:23 PM	2:26 PM	0:03:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	APP	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	ADD MONEY	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	BILL PAYMENT	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	MOBILE RECHARGE	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	RESUBMIT KYC	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	REGISTRATION	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+6-Aug-25	Delayed App Response	TRANSFER MONEY	App Services	PARTIAL	UNPLANNED	NO	1:39 PM	2:56 PM	1:17:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Prattay
+4-Aug-25	Delayed response in Web Portals 	WEB	Delayed response in CC, SYS & DMS portals	PARTIAL	UNPLANNED	NO	12:34 PM	1:53 PM	1:19:00	INTERNAL	Unidentified	Unidentified	N/A	SYSTEM	Borno
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	APP	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	ADD MONEY	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	BILL PAYMENT	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	E-COM PAYMENT	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	MOBILE RECHARGE	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	SMS	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	TRANSFER MONEY	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	REMITTANCE	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	WEB	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	USSD	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	REGISTRATION	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir
+3-Aug-25	Full DFS System Down Due To DB Maintenance Activity	RESUBMIT KYC	All Service	FULL	PLANNED	NO	12:10 AM	4:00 AM	3:50:00	INTERNAL	LIVE DB ACTIVITY - Database Purging July 2025	Maintenance Activity Successful	N/A	DATABASE	Tanvir</textarea>
+            <button onclick="processData()" data-event="click:processData" data-implementation="Should parse CSV data and generate analysis">
+                Analyze Downtime Data
+            </button>
+        </div>
+
+        <div id="resultsSection" class="report-section" style="display: none;">
+            <!-- @COMPONENT: OverallSummary -->
+            <h2>Overall Downtime Summary</h2>
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <h3>Total Incidents</h3>
+                    <div class="value" data-bind="summary.totalIncidents">4</div>
+                    <div class="unit">incidents</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Total Downtime</h3>
+                    <div class="value" data-bind="summary.totalDuration">8 hours</div>
+                    <div class="unit">29 minutes</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Planned Downtime</h3>
+                    <div class="value" data-bind="summary.plannedDuration">3 hours</div>
+                    <div class="unit">50 minutes</div>
+                </div>
+                <div class="summary-card">
+                    <h3>Unplanned Downtime</h3>
+                    <div class="value" data-bind="summary.unplannedDuration">4 hours</div>
+                    <div class="unit">39 minutes</div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: OverallSummary -->
+
+            <!-- @COMPONENT: DowntimeCharts -->
+            <h2>Downtime Analysis by Category</h2>
+            <div class="charts-container">
+                <div class="chart-wrapper">
+                    <h3>Planned Full Downtime</h3>
+                    <p class="section-subtitle">Database Maintenance - All Services (230 minutes)</p>
+                    <div class="chart-container">
+                        <canvas id="plannedFullChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>Unplanned Full Downtime</h3>
+                    <p class="section-subtitle">SSL Limit Issue (59 minutes)</p>
+                    <div class="chart-container">
+                        <canvas id="unplannedFullChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>Unplanned Partial Downtime</h3>
+                    <p class="section-subtitle">Service degradation incidents (159 minutes total)</p>
+                    <div class="chart-container">
+                        <canvas id="unplannedPartialChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <h3>Planned Partial Downtime</h3>
+                    <p class="section-subtitle">No scheduled partial maintenance</p>
+                    <div class="no-data">
+                        No planned partial downtime incidents in this period
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: DowntimeCharts -->
+
+            <!-- @COMPONENT: IncidentTable -->
+            <h2>Detailed Incident Report</h2>
+            <table data-mock="true">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Issue Description</th>
+                        <th>Channel</th>
+                        <th>Impact Type</th>
+                        <th>Modality</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Duration</th>
+                        <th>Reason</th>
+                    </tr>
+                </thead>
+                <tbody data-bind="incidents.map(incident => ...)">
+                    <tr>
+                        <td>8-Aug-25</td>
+                        <td>Issue with Transfer Money and Credit Card Bill Payment</td>
+                        <td>TRANSFER MONEY</td>
+                        <td><span class="impact-badge impact-full">FULL</span></td>
+                        <td><span class="impact-badge modality-unplanned">UNPLANNED</span></td>
+                        <td>11:00 PM</td>
+                        <td>11:59 PM</td>
+                        <td>0:59:00</td>
+                        <td>SSL Limit Issue</td>
+                    </tr>
+                    <tr>
+                        <td>6-Aug-25</td>
+                        <td>Delayed response in Web Portals</td>
+                        <td>WEB</td>
+                        <td><span class="impact-badge impact-partial">PARTIAL</span></td>
+                        <td><span class="impact-badge modality-unplanned">UNPLANNED</span></td>
+                        <td>2:23 PM</td>
+                        <td>2:26 PM</td>
+                        <td>0:03:00</td>
+                        <td>Unidentified</td>
+                    </tr>
+                    <tr>
+                        <td>6-Aug-25</td>
+                        <td>Delayed App Response</td>
+                        <td>Multiple Services</td>
+                        <td><span class="impact-badge impact-partial">PARTIAL</span></td>
+                        <td><span class="impact-badge modality-unplanned">UNPLANNED</span></td>
+                        <td>1:39 PM</td>
+                        <td>2:56 PM</td>
+                        <td>1:17:00</td>
+                        <td>Unidentified</td>
+                    </tr>
+                    <tr>
+                        <td>4-Aug-25</td>
+                        <td>Delayed response in Web Portals</td>
+                        <td>WEB</td>
+                        <td><span class="impact-badge impact-partial">PARTIAL</span></td>
+                        <td><span class="impact-badge modality-unplanned">UNPLANNED</span></td>
+                        <td>12:34 PM</td>
+                        <td>1:53 PM</td>
+                        <td>1:19:00</td>
+                        <td>Unidentified</td>
+                    </tr>
+                    <tr>
+                        <td>3-Aug-25</td>
+                        <td>Full DFS System Down Due To DB Maintenance Activity</td>
+                        <td>All Services</td>
+                        <td><span class="impact-badge impact-full">FULL</span></td>
+                        <td><span class="impact-badge modality-planned">PLANNED</span></td>
+                        <td>12:10 AM</td>
+                        <td>4:00 AM</td>
+                        <td>3:50:00</td>
+                        <td>Database Purging July 2025</td>
+                    </tr>
+                </tbody>
+            </table>
+            <!-- @END_COMPONENT: IncidentTable -->
+        </div>
+    </div>
+
+    <script>
+        // TODO: Implement business logic, API calls, or state management
+        let charts = {};
+
+        function parseCSVData(csvText) {
+            // TODO: Implement CSV parsing logic
+            const lines = csvText.trim().split('\n');
+            const incidents = lines.map(line => {
+                const columns = line.split('\t');
+                return {
+                    date: columns[0],
+                    issue: columns[1],
+                    channel: columns[2],
+                    service: columns[3],
+                    impactType: columns[4],
+                    modality: columns[5],
+                    startTime: columns[7],
+                    endTime: columns[8],
+                    duration: columns[9]
+                };
+            });
+            return incidents;
+        }
+
+        function processData() {
+            const dataInput = document.getElementById('dataInput');
+            const resultsSection = document.getElementById('resultsSection');
+            
+            // Show loading state
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Processing...';
+            
+            // Simulate processing delay
+            setTimeout(() => {
+                // TODO: Process actual CSV data here
+                resultsSection.style.display = 'block';
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+                
+                // Create charts
+                createCharts();
+                
+                button.disabled = false;
+                button.textContent = 'Analyze Downtime Data';
+            }, 1500);
+        }
+
+        function createCharts() {
+            // Planned Full Downtime Chart
+            const plannedFullCtx = document.getElementById('plannedFullChart').getContext('2d');
+            const plannedFullData = {
+                labels: ['APP', 'ADD MONEY', 'BILL PAYMENT', 'E-COM PAYMENT', 'MOBILE RECHARGE', 'SMS', 'TRANSFER MONEY', 'REMITTANCE', 'WEB', 'USSD', 'REGISTRATION', 'RESUBMIT KYC'],
+                datasets: [{
+                    data: [230, 230, 230, 230, 230, 230, 230, 230, 230, 230, 230, 230],
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                    ]
+                }]
+            };
+            
+            charts.plannedFull = new Chart(plannedFullCtx, {
+                type: 'pie',
+                data: plannedFullData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 10
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Unplanned Full Downtime Chart  
+            const unplannedFullCtx = document.getElementById('unplannedFullChart').getContext('2d');
+            const unplannedFullData = {
+                labels: ['TRANSFER MONEY'],
+                datasets: [{
+                    data: [59],
+                    backgroundColor: ['#FF6384']
+                }]
+            };
+            
+            charts.unplannedFull = new Chart(unplannedFullCtx, {
+                type: 'pie',
+                data: unplannedFullData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Unplanned Partial Downtime Chart
+            const unplannedPartialCtx = document.getElementById('unplannedPartialChart').getContext('2d');
+            const unplannedPartialData = {
+                labels: ['APP (77 min)', 'ADD MONEY (77 min)', 'BILL PAYMENT (77 min)', 'MOBILE RECHARGE (77 min)', 'REGISTRATION (77 min)', 'RESUBMIT KYC (77 min)', 'TRANSFER MONEY (77 min)', 'WEB (3 min)', 'WEB (79 min)'],
+                datasets: [{
+                    data: [77, 77, 77, 77, 77, 77, 77, 3, 79],
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+                        '#FF6384', '#36A2EB', '#FFCE56'
+                    ]
+                }]
+            };
+            
+            charts.unplannedPartial = new Chart(unplannedPartialCtx, {
+                type: 'pie',
+                data: unplannedPartialData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 8
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize with demo data on load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-process demo data after a short delay
+            setTimeout(() => {
+                processData();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

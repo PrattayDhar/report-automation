@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Downtime Reporter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#007bff',
+                        secondary: '#6c757d',
+                        success: '#28a745',
+                        danger: '#dc3545',
+                        warning: '#ffc107',
+                        info: '#17a2b8'
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- @COMPONENT: MainApp -->
+    <div class="min-h-screen bg-gray-50">
+        <!-- @COMPONENT: Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <h1 class="text-3xl font-bold text-gray-900 text-center">Automated Downtime Reporter</h1>
+                <p class="text-gray-600 text-center mt-2">Comprehensive downtime analysis and reporting system</p>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- @COMPONENT: DataInputSection -->
+            <div class="bg-white rounded-lg shadow-md mb-8">
+                <div class="p-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">CSV Data Input</h2>
+                    <p class="text-gray-600 mb-4">Paste your downtime data in CSV format below:</p>
+                    
+                    <textarea 
+                        id="downtimeData" 
+                        class="w-full h-48 p-4 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="Date,Title,Channel,Impacted_Service,Impact_Type,Modality,Planned_Interruption,Start_Time,End_Time,Duration"
+                        data-mock="true">Date,Title,Channel,Impacted_Service,Impact_Type,Modality,Planned_Interruption,Start_Time,End_Time,Duration
+8-Aug-25,Issue with Transfer Money,TRANSFER MONEY,Transfer Money and CCBP services,FULL,UNPLANNED,YES,11:00 PM,11:59 PM,00:59:00
+6-Aug-25,Delayed response in Web Portals,WEB,Delayed response in portals,PARTIAL,UNPLANNED,NO,2:23 PM,2:26 PM,00:03:00
+3-Aug-25,Full DFS System Down,APP,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+2-Aug-25,Mobile Recharge Issues,MOBILE RECHARGE,Mobile Recharge Service,PARTIAL,UNPLANNED,NO,9:15 AM,9:45 AM,00:30:00
+1-Aug-25,Registration Portal Maintenance,REGISTRATION,User Registration,FULL,PLANNED,YES,2:00 AM,6:00 AM,04:00:00</textarea>
+                    
+                    <div class="mt-4">
+                        <button 
+                            id="generateReportBtn"
+                            class="w-full bg-primary hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                            data-event="click:generateReport">
+                            Generate Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: DataInputSection -->
+
+            <!-- @COMPONENT: LoadingState -->
+            <div id="loadingState" class="hidden bg-white rounded-lg shadow-md mb-8">
+                <div class="p-8 text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p class="text-gray-600">Generating comprehensive report...</p>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: LoadingState -->
+
+            <!-- @COMPONENT: ReportSection -->
+            <div id="reportSection" class="space-y-8">
+                <!-- @COMPONENT: OverviewCards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-red-100 rounded-md flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Incidents</p>
+                                <p class="text-2xl font-semibold text-gray-900" data-bind="report.totalIncidents">5</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-orange-100 rounded-md flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Total Downtime</p>
+                                <p class="text-2xl font-semibold text-gray-900" data-bind="report.totalDowntime">09:22:00</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-red-100 rounded-md flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Unplanned Incidents</p>
+                                <p class="text-2xl font-semibold text-gray-900" data-bind="report.unplannedCount">3</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-500">Planned Incidents</p>
+                                <p class="text-2xl font-semibold text-gray-900" data-bind="report.plannedCount">2</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: OverviewCards -->
+
+                <!-- @COMPONENT: MainChartsSection -->
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-900">Overall Downtime Analysis</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Downtime by Modality</h3>
+                                <div class="relative h-80">
+                                    <canvas id="modalityChart" data-implementation="Pie chart showing planned vs unplanned downtime"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Downtime by Impact Type</h3>
+                                <div class="relative h-80">
+                                    <canvas id="impactChart" data-implementation="Bar chart showing full vs partial impact"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: MainChartsSection -->
+
+                <!-- @COMPONENT: CategoryTabs -->
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-900">Channel-wise Breakdown</h2>
+                        <p class="text-gray-600 mt-1">Detailed analysis by incident category and service channel</p>
+                    </div>
+                    
+                    <!-- Tab Navigation -->
+                    <div class="border-b border-gray-200">
+                        <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                            <button class="tab-button active py-4 px-1 border-b-2 border-primary font-medium text-sm text-primary" data-tab="unplanned-partial">
+                                Unplanned Partial
+                            </button>
+                            <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="unplanned-full">
+                                Unplanned Full
+                            </button>
+                            <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="planned-full">
+                                Planned Full
+                            </button>
+                            <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="planned-partial">
+                                Planned Partial
+                            </button>
+                        </nav>
+                    </div>
+
+                    <!-- Tab Content -->
+                    <div class="p-6">
+                        <!-- @COMPONENT: UnplannedPartialTab -->
+                        <div class="tab-content" data-tab-content="unplanned-partial">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Channel Distribution</h3>
+                                    <div class="relative h-80">
+                                        <canvas id="unplannedPartialChart"></canvas>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Incident Details</h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-200" data-mock="true">
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6-Aug-25</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">WEB</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">00:03:00</td>
+                                                </tr>
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2-Aug-25</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">MOBILE RECHARGE</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">00:30:00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_COMPONENT: UnplannedPartialTab -->
+
+                        <!-- @COMPONENT: UnplannedFullTab -->
+                        <div class="tab-content hidden" data-tab-content="unplanned-full">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Channel Distribution</h3>
+                                    <div class="relative h-80">
+                                        <canvas id="unplannedFullChart"></canvas>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Incident Details</h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-200" data-mock="true">
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8-Aug-25</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">TRANSFER MONEY</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">00:59:00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_COMPONENT: UnplannedFullTab -->
+
+                        <!-- @COMPONENT: PlannedFullTab -->
+                        <div class="tab-content hidden" data-tab-content="planned-full">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Channel Distribution</h3>
+                                    <div class="relative h-80">
+                                        <canvas id="plannedFullChart"></canvas>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-medium text-gray-900 mb-4">Incident Details</h3>
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200">
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white divide-y divide-gray-200" data-mock="true">
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">3-Aug-25</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">APP</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">03:50:00</td>
+                                                </tr>
+                                                <tr class="hover:bg-gray-50">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1-Aug-25</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">REGISTRATION</td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">04:00:00</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_COMPONENT: PlannedFullTab -->
+
+                        <!-- @COMPONENT: PlannedPartialTab -->
+                        <div class="tab-content hidden" data-tab-content="planned-partial">
+                            <div class="text-center py-12">
+                                <div class="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No Planned Partial Incidents</h3>
+                                <p class="text-gray-500">No incidents found in this category for the selected time period.</p>
+                            </div>
+                        </div>
+                        <!-- @END_COMPONENT: PlannedPartialTab -->
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: CategoryTabs -->
+
+                <!-- @COMPONENT: SummarySection -->
+                <div class="bg-white rounded-lg shadow-md">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-900">Summary Report</h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incidents</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Duration</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Duration</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% of Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" data-mock="true">
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                Unplanned Partial
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">00:33:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">00:16:30</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5.9%</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                Unplanned Full
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">1</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">00:59:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">00:59:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10.5%</td>
+                                    </tr>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                Planned Full
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">07:50:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">03:55:00</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">83.6%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: SummarySection -->
+            </div>
+            <!-- @END_COMPONENT: ReportSection -->
+        </div>
+    </div>
+    <!-- @END_COMPONENT: MainApp -->
+
+    <script>
+        (function() {
+            // TODO: Implement React state management and API integration
+            
+            // Tab switching functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+                    
+                    // Update button states
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active', 'border-primary', 'text-primary');
+                        btn.classList.add('border-transparent', 'text-gray-500');
+                    });
+                    
+                    this.classList.add('active', 'border-primary', 'text-primary');
+                    this.classList.remove('border-transparent', 'text-gray-500');
+                    
+                    // Update content visibility
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    document.querySelector(`[data-tab-content="${tabId}"]`).classList.remove('hidden');
+                });
+            });
+            
+            // Initialize charts
+            function initializeCharts() {
+                // Modality Chart (Pie)
+                const modalityCtx = document.getElementById('modalityChart').getContext('2d');
+                new Chart(modalityCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Unplanned', 'Planned'],
+                        datasets: [{
+                            data: [1.53, 7.83], // in hours
+                            backgroundColor: ['#ef4444', '#3b82f6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+                
+                // Impact Chart (Bar)
+                const impactCtx = document.getElementById('impactChart').getContext('2d');
+                new Chart(impactCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Partial Impact', 'Full Impact'],
+                        datasets: [{
+                            label: 'Duration (hours)',
+                            data: [0.55, 8.82],
+                            backgroundColor: ['#f59e0b', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                
+                // Unplanned Partial Chart
+                const unplannedPartialCtx = document.getElementById('unplannedPartialChart').getContext('2d');
+                new Chart(unplannedPartialCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['WEB', 'MOBILE RECHARGE'],
+                        datasets: [{
+                            data: [3, 30], // in minutes
+                            backgroundColor: ['#10b981', '#f59e0b'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+                
+                // Unplanned Full Chart
+                const unplannedFullCtx = document.getElementById('unplannedFullChart').getContext('2d');
+                new Chart(unplannedFullCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['TRANSFER MONEY'],
+                        datasets: [{
+                            data: [59], // in minutes
+                            backgroundColor: ['#8b5cf6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+                
+                // Planned Full Chart
+                const plannedFullCtx = document.getElementById('plannedFullChart').getContext('2d');
+                new Chart(plannedFullCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['APP', 'REGISTRATION'],
+                        datasets: [{
+                            data: [230, 240], // in minutes
+                            backgroundColor: ['#06b6d4', '#84cc16'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Generate Report Button Handler
+            document.getElementById('generateReportBtn').addEventListener('click', function() {
+                const button = this;
+                const loadingState = document.getElementById('loadingState');
+                const reportSection = document.getElementById('reportSection');
+                
+                // Show loading state
+                button.disabled = true;
+                button.textContent = 'Generating...';
+                loadingState.classList.remove('hidden');
+                reportSection.style.display = 'none';
+                
+                // Simulate API call
+                setTimeout(() => {
+                    // Hide loading, show report
+                    loadingState.classList.add('hidden');
+                    reportSection.style.display = 'block';
+                    button.disabled = false;
+                    button.textContent = 'Generate Report';
+                    
+                    // Initialize charts after report is shown
+                    initializeCharts();
+                }, 2000);
+                
+                // TODO: Replace with actual API call to backend
+                // const response = await axios.post('http://localhost:5001/api/report', { downtimeData });
+            });
+        })();
+    </script>
+</body>
+</html>

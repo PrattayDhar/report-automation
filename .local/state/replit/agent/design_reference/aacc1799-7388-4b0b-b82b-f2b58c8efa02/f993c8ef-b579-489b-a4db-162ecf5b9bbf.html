@@ -1,0 +1,637 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Downtime Reporter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#007bff',
+                        'primary-dark': '#0056b3',
+                        surface: '#f4f7f6',
+                        text: '#333333'
+                    },
+                    fontFamily: {
+                        'system': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-surface text-text font-system min-h-screen">
+    <div class="max-w-7xl mx-auto p-5">
+        <!-- @COMPONENT: Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Automated Downtime Reporter</h1>
+            <p class="text-gray-600 text-lg">Analyze and visualize service downtime incidents with comprehensive reporting</p>
+        </header>
+        <!-- @END_COMPONENT: Header -->
+
+        <!-- @COMPONENT: InputSection -->
+        <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                CSV Data Input
+            </h2>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Paste Your Downtime Data (CSV Format)</label>
+                <textarea 
+                    id="downtimeData" 
+                    class="w-full min-h-[200px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
+                    placeholder="Date,Title,Channel,Impacted_Service,Impact_Type,Modality,Planned_Interruption,Start_Time,End_Time,Duration
+8-Aug-25,Issue with Transfer Money,TRANSFER MONEY,Transfer Money and CCBP services,FULL,UNPLANNED,YES,11:00 PM,11:59 PM,00:59:00
+6-Aug-25,Delayed response in Web Portals,WEB,Delayed response in portals,PARTIAL,UNPLANNED,NO,2:23 PM,2:26 PM,00:03:00
+3-Aug-25,Full DFS System Down,APP,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00"
+                    data-mock="true">Date,Title,Channel,Impacted_Service,Impact_Type,Modality,Planned_Interruption,Start_Time,End_Time,Duration
+8-Aug-25,Issue with Transfer Money,TRANSFER MONEY,Transfer Money and CCBP services,FULL,UNPLANNED,YES,11:00 PM,11:59 PM,00:59:00
+6-Aug-25,Delayed response in Web Portals,WEB,Delayed response in portals,PARTIAL,UNPLANNED,NO,2:23 PM,2:26 PM,00:03:00
+3-Aug-25,Full DFS System Down,APP,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,ADD MONEY,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,BILL PAYMENT,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,E-COM PAYMENT,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,MOBILE RECHARGE,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,REGISTRATION,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,SMS,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,USSD,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,WEB,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,REMITTANCE,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+3-Aug-25,Full DFS System Down,RESUBMIT KYC,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00</textarea>
+            </div>
+            <button 
+                id="generateBtn"
+                class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                data-event="click:handleGenerateReport"
+                data-implementation="Should validate CSV format and call backend API">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                Generate Report
+            </button>
+        </section>
+        <!-- @END_COMPONENT: InputSection -->
+
+        <!-- @COMPONENT: ReportSection [contains charts, summary, and detailed tables] -->
+        <section id="reportSection" class="space-y-8">
+            
+            <!-- @COMPONENT: OverallSummary -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-6 text-gray-900 border-b-2 border-primary pb-2">Overall Downtime Summary</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-600" data-bind="summary.totalIncidents">4</div>
+                        <div class="text-sm text-blue-800">Total Incidents</div>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-red-600" data-bind="summary.unplannedTime">01:02:00</div>
+                        <div class="text-sm text-red-800">Unplanned Downtime</div>
+                    </div>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-600" data-bind="summary.plannedTime">42:20:00</div>
+                        <div class="text-sm text-green-800">Planned Downtime</div>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-yellow-600" data-bind="summary.reliability">98.2%</div>
+                        <div class="text-sm text-yellow-800">Service Reliability</div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: OverallSummary -->
+
+            <!-- @COMPONENT: ChartsContainer -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- @COMPONENT: ModalityChart -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900">Downtime by Modality</h3>
+                    <div class="relative h-64">
+                        <canvas id="modalityChart" data-implementation="Pie chart showing Planned vs Unplanned downtime"></canvas>
+                    </div>
+                    <div class="mt-4 flex justify-center space-x-4 text-sm">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
+                            <span>Unplanned (2.4%)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-blue-400 rounded-full mr-2"></div>
+                            <span>Planned (97.6%)</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: ModalityChart -->
+
+                <!-- @COMPONENT: TypeChart -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900">Downtime by Impact Type</h3>
+                    <div class="relative h-64">
+                        <canvas id="typeChart" data-implementation="Bar chart showing duration by impact type"></canvas>
+                    </div>
+                    <div class="mt-4 flex justify-center space-x-4 text-sm">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-red-400 rounded-full mr-2"></div>
+                            <span>Unplanned Partial</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-orange-400 rounded-full mr-2"></div>
+                            <span>Unplanned Full</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-blue-400 rounded-full mr-2"></div>
+                            <span>Planned Full</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: TypeChart -->
+
+            </div>
+            <!-- @END_COMPONENT: ChartsContainer -->
+
+            <!-- @COMPONENT: ChannelChartsContainer -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-semibold text-gray-900 border-b-2 border-primary pb-2">Channel-wise Downtime Analysis</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    
+                    <!-- @COMPONENT: PlannedFullChart -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-900">Planned Full Downtime</h3>
+                        <div class="relative h-48">
+                            <canvas id="plannedFullChart" data-implementation="Pie chart for planned full downtime by channel"></canvas>
+                        </div>
+                        <div class="mt-4 text-center text-sm text-gray-600">
+                            <div class="font-medium">Total Duration: <span class="text-primary">42:20:00</span></div>
+                            <div>11 Channels Affected</div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: PlannedFullChart -->
+
+                    <!-- @COMPONENT: UnplannedFullChart -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-900">Unplanned Full Downtime</h3>
+                        <div class="relative h-48">
+                            <canvas id="unplannedFullChart" data-implementation="Pie chart for unplanned full downtime by channel"></canvas>
+                        </div>
+                        <div class="mt-4 text-center text-sm text-gray-600">
+                            <div class="font-medium">Total Duration: <span class="text-red-500">00:59:00</span></div>
+                            <div>1 Channel Affected</div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: UnplannedFullChart -->
+
+                    <!-- @COMPONENT: UnplannedPartialChart -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h3 class="text-lg font-semibold mb-4 text-gray-900">Unplanned Partial Downtime</h3>
+                        <div class="relative h-48">
+                            <canvas id="unplannedPartialChart" data-implementation="Pie chart for unplanned partial downtime by channel"></canvas>
+                        </div>
+                        <div class="mt-4 text-center text-sm text-gray-600">
+                            <div class="font-medium">Total Duration: <span class="text-orange-500">00:03:00</span></div>
+                            <div>1 Channel Affected</div>
+                        </div>
+                    </div>
+                    <!-- @END_COMPONENT: UnplannedPartialChart -->
+
+                </div>
+            </div>
+            <!-- @END_COMPONENT: ChannelChartsContainer -->
+
+            <!-- @COMPONENT: SummaryTable -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b">
+                    <h2 class="text-xl font-semibold text-gray-900">Downtime Summary</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Percentage</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Incidents</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- @MAP: summaryData.map(row => ( -->
+                            <tr class="hover:bg-gray-50" data-mock="true">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-red-400 rounded-full mr-3"></div>
+                                        <span class="text-sm font-medium text-gray-900" data-bind="row.type">Unplanned Partial</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.duration">00:03:00</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.percentage">0.1%</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.incidents">1</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" data-mock="true">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-orange-400 rounded-full mr-3"></div>
+                                        <span class="text-sm font-medium text-gray-900" data-bind="row.type">Unplanned Full</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.duration">00:59:00</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.percentage">2.3%</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.incidents">1</td>
+                            </tr>
+                            <tr class="hover:bg-gray-50" data-mock="true">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-blue-400 rounded-full mr-3"></div>
+                                        <span class="text-sm font-medium text-gray-900" data-bind="row.type">Planned Full</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.duration">42:20:00</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.percentage">97.6%</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.incidents">11</td>
+                            </tr>
+                            <!-- @END_MAP )) -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: SummaryTable -->
+
+            <!-- @COMPONENT: DetailedTables -->
+            <div class="space-y-6">
+                
+                <!-- @COMPONENT: UnplannedPartialTable -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="px-6 py-4 bg-red-50 border-b">
+                        <h2 class="text-xl font-semibold text-red-800">Unplanned Partial Downtime Details</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impacted Service</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- @MAP: unplannedPartialData.map(row => ( -->
+                                <tr class="hover:bg-gray-50" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.date">6-Aug-25</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.title">Delayed response in Web Portals</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800" data-bind="row.channel">WEB</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900" data-bind="row.impactedService">Delayed response in portals</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-bind="row.duration">00:03:00</td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: UnplannedPartialTable -->
+
+                <!-- @COMPONENT: UnplannedFullTable -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="px-6 py-4 bg-orange-50 border-b">
+                        <h2 class="text-xl font-semibold text-orange-800">Unplanned Full Downtime Details</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impacted Service</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- @MAP: unplannedFullData.map(row => ( -->
+                                <tr class="hover:bg-gray-50" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.date">8-Aug-25</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.title">Issue with Transfer Money</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800" data-bind="row.channel">TRANSFER MONEY</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900" data-bind="row.impactedService">Transfer Money and CCBP services</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-bind="row.duration">00:59:00</td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: UnplannedFullTable -->
+
+                <!-- @COMPONENT: PlannedFullTable -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <div class="px-6 py-4 bg-blue-50 border-b">
+                        <h2 class="text-xl font-semibold text-blue-800">Planned Full Downtime Details</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channel</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impacted Service</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <!-- @MAP: plannedFullData.map(row => ( -->
+                                <tr class="hover:bg-gray-50" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.date">3-Aug-25</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.title">Full DFS System Down</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" data-bind="row.channel">APP</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900" data-bind="row.impactedService">All Service</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-bind="row.duration">03:50:00</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.date">3-Aug-25</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.title">Full DFS System Down</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" data-bind="row.channel">ADD MONEY</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900" data-bind="row.impactedService">All Service</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-bind="row.duration">03:50:00</td>
+                                </tr>
+                                <tr class="hover:bg-gray-50" data-mock="true">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.date">3-Aug-25</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" data-bind="row.title">Full DFS System Down</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800" data-bind="row.channel">BILL PAYMENT</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900" data-bind="row.impactedService">All Service</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-bind="row.duration">03:50:00</td>
+                                </tr>
+                                <!-- Show additional rows with collapsed state -->
+                                <tr class="hover:bg-gray-50 bg-gray-25" data-mock="true">
+                                    <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 border-t">
+                                        <button class="text-primary hover:text-primary-dark font-medium" data-implementation="Toggle to show remaining 8 channels">
+                                            + Show 8 more channels (E-COM PAYMENT, MOBILE RECHARGE, REGISTRATION, SMS, USSD, WEB, REMITTANCE, RESUBMIT KYC)
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: PlannedFullTable -->
+
+            </div>
+            <!-- @END_COMPONENT: DetailedTables -->
+
+        </section>
+        <!-- @END_COMPONENT: ReportSection -->
+
+        <!-- @COMPONENT: LoadingState [hidden by default] -->
+        <div id="loadingState" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+                <div class="text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Generating Report</h3>
+                    <p class="text-gray-600">Processing your downtime data...</p>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: LoadingState -->
+
+    </div>
+
+    <script>
+    (function() {
+        // TODO: Implement business logic, API calls, and state management
+
+        // Mock data for demonstration
+        const mockData = {
+            modalityData: {
+                labels: ['Unplanned', 'Planned'],
+                values: [62, 2540], // in minutes
+                colors: ['#EF4444', '#3B82F6']
+            },
+            typeData: {
+                labels: ['Unplanned Partial', 'Unplanned Full', 'Planned Full'],
+                values: [3, 59, 2540], // in minutes
+                colors: ['#EF4444', '#F97316', '#3B82F6']
+            },
+            plannedFullChannels: {
+                labels: ['APP', 'ADD MONEY', 'BILL PAYMENT', 'E-COM PAYMENT', 'MOBILE RECHARGE', 'REGISTRATION', 'SMS', 'USSD', 'WEB', 'REMITTANCE', 'RESUBMIT KYC'],
+                values: [230, 230, 230, 230, 230, 230, 230, 230, 230, 230, 230],
+                colors: ['#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#C026D3', '#D946EF', '#E879F9', '#F0ABFC', '#F9A8D4', '#FDA4AF', '#FEE2E2']
+            },
+            unplannedFullChannels: {
+                labels: ['TRANSFER MONEY'],
+                values: [59],
+                colors: ['#F97316']
+            },
+            unplannedPartialChannels: {
+                labels: ['WEB'],
+                values: [3],
+                colors: ['#EF4444']
+            }
+        };
+
+        // Initialize charts
+        function initializeCharts() {
+            // Modality Chart
+            const modalityCtx = document.getElementById('modalityChart').getContext('2d');
+            new Chart(modalityCtx, {
+                type: 'pie',
+                data: {
+                    labels: mockData.modalityData.labels,
+                    datasets: [{
+                        data: mockData.modalityData.values,
+                        backgroundColor: mockData.modalityData.colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return context.label + ': ' + value + ' min (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Type Chart
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            new Chart(typeCtx, {
+                type: 'bar',
+                data: {
+                    labels: mockData.typeData.labels,
+                    datasets: [{
+                        data: mockData.typeData.values,
+                        backgroundColor: mockData.typeData.colors,
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Duration (minutes)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Planned Full Chart
+            const plannedFullCtx = document.getElementById('plannedFullChart').getContext('2d');
+            new Chart(plannedFullCtx, {
+                type: 'pie',
+                data: {
+                    labels: mockData.plannedFullChannels.labels,
+                    datasets: [{
+                        data: mockData.plannedFullChannels.values,
+                        backgroundColor: mockData.plannedFullChannels.colors,
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + ' min';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Unplanned Full Chart
+            const unplannedFullCtx = document.getElementById('unplannedFullChart').getContext('2d');
+            new Chart(unplannedFullCtx, {
+                type: 'pie',
+                data: {
+                    labels: mockData.unplannedFullChannels.labels,
+                    datasets: [{
+                        data: mockData.unplannedFullChannels.values,
+                        backgroundColor: mockData.unplannedFullChannels.colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Unplanned Partial Chart
+            const unplannedPartialCtx = document.getElementById('unplannedPartialChart').getContext('2d');
+            new Chart(unplannedPartialCtx, {
+                type: 'pie',
+                data: {
+                    labels: mockData.unplannedPartialChannels.labels,
+                    datasets: [{
+                        data: mockData.unplannedPartialChannels.values,
+                        backgroundColor: mockData.unplannedPartialChannels.colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Generate Report Handler
+        function handleGenerateReport() {
+            const loadingState = document.getElementById('loadingState');
+            const generateBtn = document.getElementById('generateBtn');
+            
+            // Show loading state
+            loadingState.classList.remove('hidden');
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = `
+                <svg class="animate-spin w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                </svg>
+                Generating...
+            `;
+
+            // Simulate API call delay
+            setTimeout(() => {
+                loadingState.classList.add('hidden');
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                    Generate Report
+                `;
+                
+                // Reinitialize charts with new data
+                initializeCharts();
+            }, 2000);
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            
+            // Attach event listeners
+            document.getElementById('generateBtn').addEventListener('click', handleGenerateReport);
+        });
+
+    })();
+    </script>
+
+</body>
+</html>

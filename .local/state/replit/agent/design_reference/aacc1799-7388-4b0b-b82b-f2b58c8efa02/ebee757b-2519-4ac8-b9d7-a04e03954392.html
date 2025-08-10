@@ -1,0 +1,490 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automated Downtime Reporter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 font-sans">
+    <!-- @COMPONENT: Header -->
+    <header class="bg-white shadow-sm border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-primary-500 p-2 rounded-lg">
+                        <i class="fas fa-chart-line text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-900">Automated Downtime Reporter</h1>
+                        <p class="text-slate-600 mt-1">Analyze and visualize service downtime incidents</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <span class="text-sm text-slate-500">Last updated: <span data-bind="lastUpdated">Jan 15, 2024</span></span>
+                    <div class="h-6 w-px bg-slate-300"></div>
+                    <button class="text-slate-600 hover:text-slate-900 transition-colors">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- @COMPONENT: DataInputSection -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+            <div class="flex items-center space-x-3 mb-6">
+                <div class="bg-primary-100 p-2 rounded-lg">
+                    <i class="fas fa-upload text-primary-600"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900">Data Input</h2>
+                    <p class="text-slate-600">Paste your downtime data in CSV format</p>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label for="downtimeData" class="block text-sm font-medium text-slate-700 mb-2">
+                    Downtime Data (CSV Format)
+                </label>
+                <textarea 
+                    id="downtimeData"
+                    data-mock="true"
+                    class="w-full h-48 border border-slate-300 rounded-lg px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                    placeholder="Date,Title,Channel,Impacted_Service,Impact_Type,Modality,Planned_Interruption,Start_Time,End_Time,Duration"
+                >Date,Title,Channel,Impacted_Service,Impact_Type,Modality,Planned_Interruption,Start_Time,End_Time,Duration
+8-Aug-25,Issue with Transfer Money,TRANSFER MONEY,Transfer Money and CCBP services,FULL,UNPLANNED,YES,11:00 PM,11:59 PM,00:59:00
+6-Aug-25,Delayed response in Web Portals,WEB,Delayed response in portals,PARTIAL,UNPLANNED,NO,2:23 PM,2:26 PM,00:03:00
+3-Aug-25,Full DFS System Down,APP,All Service,FULL,PLANNED,NO,12:10 AM,4:00 AM,03:50:00
+15-Aug-25,Database Maintenance,DB,Core Banking Services,FULL,PLANNED,YES,2:00 AM,5:30 AM,03:30:00
+12-Aug-25,Network Latency Issue,NETWORK,All Services,PARTIAL,UNPLANNED,NO,10:15 AM,10:45 AM,00:30:00</textarea>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button 
+                    id="generateReport"
+                    data-event="click:handleGenerateReport"
+                    class="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                >
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Generate Report</span>
+                </button>
+                <button class="sm:w-auto bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                    <i class="fas fa-download"></i>
+                    <span>Export CSV</span>
+                </button>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: DataInputSection -->
+
+        <!-- @COMPONENT: LoadingState [hidden by default] -->
+        <section id="loadingSection" class="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-8 hidden">
+            <div class="flex items-center justify-center space-x-3">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                <span class="text-slate-700 font-medium">Generating report...</span>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: LoadingState -->
+
+        <!-- @COMPONENT: ReportSection -->
+        <section id="reportSection" class="space-y-8">
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- @MAP: summaryMetrics.map(metric => ( -->
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600" data-bind="metric.label">Total Incidents</p>
+                            <p class="text-2xl font-bold text-slate-900 mt-1" data-bind="metric.value">24</p>
+                        </div>
+                        <div class="bg-emerald-100 p-3 rounded-lg">
+                            <i class="fas fa-exclamation-triangle text-emerald-600"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-emerald-600 font-medium">↓ 12%</span>
+                        <span class="text-slate-500 ml-1">vs last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600">Total Downtime</p>
+                            <p class="text-2xl font-bold text-slate-900 mt-1" data-bind="totalDowntime">8h 22m</p>
+                        </div>
+                        <div class="bg-amber-100 p-3 rounded-lg">
+                            <i class="fas fa-clock text-amber-600"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-red-600 font-medium">↑ 5%</span>
+                        <span class="text-slate-500 ml-1">vs last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600">Unplanned Events</p>
+                            <p class="text-2xl font-bold text-slate-900 mt-1" data-bind="unplannedEvents">18</p>
+                        </div>
+                        <div class="bg-red-100 p-3 rounded-lg">
+                            <i class="fas fa-times-circle text-red-600"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-red-600 font-medium">↑ 8%</span>
+                        <span class="text-slate-500 ml-1">vs last month</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-slate-600">Avg Resolution</p>
+                            <p class="text-2xl font-bold text-slate-900 mt-1" data-bind="avgResolution">21m</p>
+                        </div>
+                        <div class="bg-primary-100 p-3 rounded-lg">
+                            <i class="fas fa-stopwatch text-primary-600"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center text-sm">
+                        <span class="text-emerald-600 font-medium">↓ 3%</span>
+                        <span class="text-slate-500 ml-1">vs last month</span>
+                    </div>
+                </div>
+                <!-- @END_MAP )) -->
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- @COMPONENT: PieChart -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-slate-900">Downtime by Modality</h3>
+                        <button class="text-slate-400 hover:text-slate-600 transition-colors">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </button>
+                    </div>
+                    <div class="relative h-64">
+                        <canvas id="modalityChart"></canvas>
+                    </div>
+                    <div class="mt-4 flex justify-center space-x-6">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <span class="text-sm text-slate-600">Unplanned (75%)</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                            <span class="text-sm text-slate-600">Planned (25%)</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: PieChart -->
+
+                <!-- @COMPONENT: BarChart -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-slate-900">Downtime by Type</h3>
+                        <button class="text-slate-400 hover:text-slate-600 transition-colors">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </button>
+                    </div>
+                    <div class="relative h-64">
+                        <canvas id="typeChart"></canvas>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: BarChart -->
+            </div>
+
+            <!-- Summary Table -->
+            <!-- @COMPONENT: SummaryTable -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+                    <h3 class="text-lg font-semibold text-slate-900">Downtime Summary</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Type</th>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Duration</th>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Incidents</th>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <!-- @MAP: summaryData.map(row => ( -->
+                            <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                                        <span class="font-medium text-slate-900">Unplanned Partial</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6 text-slate-700" data-bind="row.duration">00:33:00</td>
+                                <td class="py-4 px-6 text-slate-700" data-bind="row.incidents">2</td>
+                                <td class="py-4 px-6 text-slate-700" data-bind="row.percentage">6.6%</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 bg-red-600 rounded-full"></div>
+                                        <span class="font-medium text-slate-900">Unplanned Full</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6 text-slate-700">00:59:00</td>
+                                <td class="py-4 px-6 text-slate-700">1</td>
+                                <td class="py-4 px-6 text-slate-700">11.7%</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                <td class="py-4 px-6">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                        <span class="font-medium text-slate-900">Planned Full</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-6 text-slate-700">07:20:00</td>
+                                <td class="py-4 px-6 text-slate-700">2</td>
+                                <td class="py-4 px-6 text-slate-700">81.7%</td>
+                            </tr>
+                            <!-- @END_MAP )) -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: SummaryTable -->
+
+            <!-- Detailed Incident Tables -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <!-- @COMPONENT: UnplannedPartialTable -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-200 bg-red-50">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <h3 class="text-lg font-semibold text-slate-900">Unplanned Partial Downtime</h3>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="text-left py-3 px-4 font-medium text-slate-700 text-sm">Date</th>
+                                    <th class="text-left py-3 px-4 font-medium text-slate-700 text-sm">Title</th>
+                                    <th class="text-left py-3 px-4 font-medium text-slate-700 text-sm">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                <!-- @MAP: unplannedPartialData.map(incident => ( -->
+                                <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                    <td class="py-3 px-4 text-sm text-slate-700" data-bind="incident.date">6-Aug-25</td>
+                                    <td class="py-3 px-4 text-sm text-slate-900 font-medium" data-bind="incident.title">Delayed response in Web Portals</td>
+                                    <td class="py-3 px-4 text-sm text-slate-700" data-bind="incident.duration">00:03:00</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                    <td class="py-3 px-4 text-sm text-slate-700">12-Aug-25</td>
+                                    <td class="py-3 px-4 text-sm text-slate-900 font-medium">Network Latency Issue</td>
+                                    <td class="py-3 px-4 text-sm text-slate-700">00:30:00</td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: UnplannedPartialTable -->
+
+                <!-- @COMPONENT: UnplannedFullTable -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-200 bg-red-50">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 bg-red-600 rounded-full"></div>
+                            <h3 class="text-lg font-semibold text-slate-900">Unplanned Full Downtime</h3>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="text-left py-3 px-4 font-medium text-slate-700 text-sm">Date</th>
+                                    <th class="text-left py-3 px-4 font-medium text-slate-700 text-sm">Title</th>
+                                    <th class="text-left py-3 px-4 font-medium text-slate-700 text-sm">Duration</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-200">
+                                <!-- @MAP: unplannedFullData.map(incident => ( -->
+                                <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                    <td class="py-3 px-4 text-sm text-slate-700" data-bind="incident.date">8-Aug-25</td>
+                                    <td class="py-3 px-4 text-sm text-slate-900 font-medium" data-bind="incident.title">Issue with Transfer Money</td>
+                                    <td class="py-3 px-4 text-sm text-slate-700" data-bind="incident.duration">00:59:00</td>
+                                </tr>
+                                <!-- @END_MAP )) -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: UnplannedFullTable -->
+            </div>
+
+            <!-- @COMPONENT: PlannedFullTable -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 bg-blue-50">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <h3 class="text-lg font-semibold text-slate-900">Planned Full Downtime</h3>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Date</th>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Title</th>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Channel</th>
+                                <th class="text-left py-3 px-6 font-medium text-slate-700">Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <!-- @MAP: plannedFullData.map(incident => ( -->
+                            <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                <td class="py-4 px-6 text-slate-700" data-bind="incident.date">3-Aug-25</td>
+                                <td class="py-4 px-6 text-slate-900 font-medium" data-bind="incident.title">Full DFS System Down</td>
+                                <td class="py-4 px-6 text-slate-700" data-bind="incident.channel">APP</td>
+                                <td class="py-4 px-6 text-slate-700" data-bind="incident.duration">03:50:00</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition-colors" data-mock="true">
+                                <td class="py-4 px-6 text-slate-700">15-Aug-25</td>
+                                <td class="py-4 px-6 text-slate-900 font-medium">Database Maintenance</td>
+                                <td class="py-4 px-6 text-slate-700">DB</td>
+                                <td class="py-4 px-6 text-slate-700">03:30:00</td>
+                            </tr>
+                            <!-- @END_MAP )) -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: PlannedFullTable -->
+        </section>
+        <!-- @END_COMPONENT: ReportSection -->
+    </main>
+
+    <script>
+        (function() {
+            // TODO: Implement business logic, API calls, or state management
+            
+            // Initialize Charts
+            function initializeCharts() {
+                // Pie Chart for Modality
+                const modalityCtx = document.getElementById('modalityChart').getContext('2d');
+                new Chart(modalityCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Unplanned', 'Planned'],
+                        datasets: [{
+                            data: [75, 25],
+                            backgroundColor: ['#EF4444', '#3B82F6'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+
+                // Bar Chart for Type
+                const typeCtx = document.getElementById('typeChart').getContext('2d');
+                new Chart(typeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Unplanned Partial', 'Unplanned Full', 'Planned Full'],
+                        datasets: [{
+                            label: 'Duration (minutes)',
+                            data: [33, 59, 440],
+                            backgroundColor: ['#EF4444', '#DC2626', '#3B82F6'],
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: '#E2E8F0'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Button interactions
+            document.getElementById('generateReport').addEventListener('click', function() {
+                // TODO: Implement report generation logic
+                const loadingSection = document.getElementById('loadingSection');
+                const reportSection = document.getElementById('reportSection');
+                
+                // Show loading state
+                loadingSection.classList.remove('hidden');
+                reportSection.style.display = 'none';
+                
+                // Simulate API call delay
+                setTimeout(() => {
+                    loadingSection.classList.add('hidden');
+                    reportSection.style.display = 'block';
+                    initializeCharts();
+                }, 2000);
+            });
+
+            // Initialize charts immediately for demo
+            setTimeout(() => {
+                initializeCharts();
+            }, 100);
+        })();
+    </script>
+</body>
+</html>
