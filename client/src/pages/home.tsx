@@ -20,9 +20,6 @@ export default function Home() {
               System Analytics Dashboard
             </h1>
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Comprehensive downtime analysis and system reliability reporting platform
-          </p>
         </div>
 
         {/* Feature Cards */}
@@ -103,7 +100,7 @@ export default function Home() {
 
         {/* Footer */}
         <div className="text-center mt-12 text-gray-500 dark:text-gray-400">
-          <p>&copy; 2025 System Analytics Dashboard. Built for comprehensive downtime analysis.</p>
+          <p>&copy; Prattay Dhar Logna</p>
         </div>
       </div>
     </div>

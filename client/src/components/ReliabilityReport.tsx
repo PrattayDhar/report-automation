@@ -131,15 +131,15 @@ export default function ReliabilityReport({ reliabilityData }: ReliabilityReport
               <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>
                 Affected Area
               </th>
-              <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+              {/* <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                 Outage
-              </th>
-              <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+              </th> */}
+              {/* <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                 Modality
-              </th>
-              <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+              </th> */}
+              {/* <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                 Reliability Impacted
-              </th>
+              </th> */}
               <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                 Plan Downtime(min)
               </th>
@@ -172,15 +172,15 @@ export default function ReliabilityReport({ reliabilityData }: ReliabilityReport
                 <td style={{ padding: '12px', fontWeight: '500' }}>
                   {item.channel}
                 </td>
-                <td style={{ padding: '12px', textAlign: 'center' }}>
+                {/* <td style={{ padding: '12px', textAlign: 'center' }}>
                   Full
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center' }}>
+                </td> */}
+                {/* <td style={{ padding: '12px', textAlign: 'center' }}>
                   Unplanned
-                </td>
-                <td style={{ padding: '12px', textAlign: 'center' }}>
+                </td> */}
+                {/* <td style={{ padding: '12px', textAlign: 'center' }}>
                   Yes
-                </td>
+                </td> */}
                 <td style={{ padding: '12px', textAlign: 'center' }}>
                   {item.plannedDowntime}
                 </td>
